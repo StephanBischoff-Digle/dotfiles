@@ -1,0 +1,37 @@
+#+TITLE: General Configuration Options
+#+AUTHOR: Stephan Bischoff
+#+DATE: 2020-12-27
+
+* Font  
+** Default
+
+#+begin_src emacs-lisp
+(set-face-attribute 'default nil
+  :font "JetBrains Mono"
+  :height 100
+  :weight 'normal
+  :width 'normal
+  :slant 'normal)
+#+end_src
+** Fixed Pitch Face
+
+#+begin_src emacs-lisp
+(set-face-attribute 'fixed-pitch nil
+  :font "JetBrains Mono"
+  :height 100
+  :weight 'normal
+  :width 'normal
+  :slant 'normal)
+#+end_src
+
+** Variable Pitch Face
+
+#+begin_src emacs-lisp
+(set-face-attribute 'variable-pitch nil
+  ;:font "URW Palladio L"
+  :font "Carlito"
+  :height 120
+  :weight 'normal
+  :width 'normal
+  :slant 'normal)
+#+end_src

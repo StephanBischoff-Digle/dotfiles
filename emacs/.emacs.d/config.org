@@ -1,0 +1,701 @@
+#+TITLE: Emacs Configuration
+#+AUTHOR: Stpehan Bischoff
+#+DATE: 2020-12-27
+#+STARTUP: overview
+#+STARTUP: hideblocks
+
+* Packages
+** Init
+
+#+begin_src emacs-lisp
+(require 'package)
+
+(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                         ("org" . "https://orgmode.org/elpa/")
+                         ("elpa" . "https://elpa.gnu.org/packages/")))
+
+(package-initialize)
+(unless package-archive-contents
+  (package-refresh-contents))
+
+;; Initialize use-package on non-Linux platforms
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+
+(require 'use-package)
+(setq use-package-always-ensure t)
+#+end_src
+
+** GUI
+*** Rainbow-Delimiters
+
+#+begin_src emacs-lisp
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+*** Which-Key
+
+#+begin_src emacs-lisp
+(use-package which-key
+  :init (which-key-mode)
+  :diminish which-key-mode
+  :config (setq which-key-idle-delay 0.3))
+#+end_src
+
+*** Helpful
+
+#+begin_src emacs-lisp
+(use-package helpful
+  :ensure t
+  :custom
+  (counsel-describe-function-function #'helpful-callable)
+  (counsel-describe-variable-function #'helpful-variable)
+  :bind
+  ([remap describe-function] . counsel-describe-function)
+  ([remap describe-command] . helpful-command)
+  ([remap describe-variable] . counsel-describe-variable)
+  ([remap describe-key] . helpful-key))
+#+end_src
+
+*** Doom Theme -- Related
+**** All-The-Icons
+_Note:_ The first time you load your configuration on a new machine, you'll need to run the following command interactively so that mode line icons display correctly:
+
+=M-x all-the-icons-install-fonts=
+
+#+begin_src emacs-lisp
+(use-package all-the-icons)
+#+end_src
+
+**** Doom-Themes
+***** Choice
+****** Themes
+
+#+begin_src emacs-lisp
+  ;(defvar *stb-theme-default* 'doom-palenight)
+  (defvar *stb-theme-default* 'elegance-light)
+  (defvar *stb-theme-dark* 'elegance-dark)
+  (defvar *stb-theme-light* 'elegance-light)
+#+end_src
+
+****** Switch
+
+#+begin_src emacs-lisp
+(defun stb/theme-default ()
+  (interactive)
+  (elegance-light))
+
+(defun stb/theme-light ()
+  (interactive)
+  (elegance-light))
+
+(defun stb/theme-dark ()
+  (interactive)
+  (elegance-dark))
+#+end_src
+
+***** Package Setup
+
+-#+begin_src emacs-lisp
+(use-package doom-themes
+  :config
+  (setq doom-themes-enable-bold t
+	doom-themes-enable-italic t)
+  (load-theme (symbol-value '*stb-theme-default*) t)
+  (doom-themes-visual-bell-config)
+  (doom-themes-org-config)
+  )
+-#+end_src
+
+**** Doom-Modeline
+
+-#+begin_src emacs-lisp
+(use-package doom-modeline
+  :ensure t
+  :defer t
+  :init (doom-modeline-mode 1)
+  :custom ((doom-modeline-height 10)
+	   (doom-modeline-vcs-max-length 12)))
+-#+end_src
+
+*** Composite
+
+#+begin_src emacs-lisp
+(use-package composite
+  :ensure nil
+  :init
+  (defvar composition-ligature-table (make-char-table nil))
+  :hook
+  (((prog-mode conf-mode nxml-mode markdown-mode help-mode)
+    . (lambda () (setq-local composition-function-table composition-ligature-table))))
+  :config
+  ;; support ligatures, some toned down to prevent hang
+  (when (version<= "27.0" emacs-version)
+    (let ((alist
+           '((33 . ".\\(?:\\(==\\|[!=]\\)[!=]?\\)")
+             (35 . ".\\(?:\\(###?\\|_(\\|[(:=?[_{]\\)[#(:=?[_{]?\\)")
+             (36 . ".\\(?:\\(>\\)>?\\)")
+             (37 . ".\\(?:\\(%\\)%?\\)")
+             (38 . ".\\(?:\\(&\\)&?\\)")
+             (42 . ".\\(?:\\(\\*\\*\\|[*>]\\)[*>]?\\)")
+             ;; (42 . ".\\(?:\\(\\*\\*\\|[*/>]\\).?\\)")
+             (43 . ".\\(?:\\([>]\\)>?\\)")
+             ;; (43 . ".\\(?:\\(\\+\\+\\|[+>]\\).?\\)")
+             (45 . ".\\(?:\\(-[->]\\|<<\\|>>\\|[-<>|~]\\)[-<>|~]?\\)")
+             ;; (46 . ".\\(?:\\(\\.[.<]\\|[-.=]\\)[-.<=]?\\)")
+             (46 . ".\\(?:\\(\\.<\\|[-=]\\)[-<=]?\\)")
+             (47 . ".\\(?:\\(//\\|==\\|[=>]\\)[/=>]?\\)")
+             ;; (47 . ".\\(?:\\(//\\|==\\|[*/=>]\\).?\\)")
+             (48 . ".\\(?:\\(x[a-fA-F0-9]\\).?\\)")
+             (58 . ".\\(?:\\(::\\|[:<=>]\\)[:<=>]?\\)")
+             (59 . ".\\(?:\\(;\\);?\\)")
+             (60 . ".\\(?:\\(!--\\|\\$>\\|\\*>\\|\\+>\\|-[-<>|]\\|/>\\|<[-<=]\\|=[<>|]\\|==>?\\||>\\||||?\\|~[>~]\\|[$*+/:<=>|~-]\\)[$*+/:<=>|~-]?\\)")
+             (61 . ".\\(?:\\(!=\\|/=\\|:=\\|<<\\|=[=>]\\|>>\\|[=>]\\)[=<>]?\\)")
+             (62 . ".\\(?:\\(->\\|=>\\|>[-=>]\\|[-:=>]\\)[-:=>]?\\)")
+             (63 . ".\\(?:\\([.:=?]\\)[.:=?]?\\)")
+             (91 . ".\\(?:\\(|\\)[]|]?\\)")
+             ;; (92 . ".\\(?:\\([\\n]\\)[\\]?\\)")
+             (94 . ".\\(?:\\(=\\)=?\\)")
+             (95 . ".\\(?:\\(|_\\|[_]\\)_?\\)")
+             (119 . ".\\(?:\\(ww\\)w?\\)")
+             (123 . ".\\(?:\\(|\\)[|}]?\\)")
+             (124 . ".\\(?:\\(->\\|=>\\||[-=>]\\||||*>\\|[]=>|}-]\\).?\\)")
+             (126 . ".\\(?:\\(~>\\|[-=>@~]\\)[-=>@~]?\\)"))))
+      (dolist (char-regexp alist)
+        (set-char-table-range composition-ligature-table (car char-regexp)
+                              `([,(cdr char-regexp) 0 font-shape-gstring]))))
+    (set-char-table-parent composition-ligature-table composition-function-table))
+  )
+#+end_src
+
+*** Pulse
+
+    #+begin_src emacs-lisp
+      (use-package pulse)
+
+      (defun stb/evil-yank-advice (orig-fn beg end &rest args)
+	(pulse-momentary-highlight-region beg end)
+	(apply orig-fn beg end args))
+
+      (advice-add 'evil-yank :around 'stb/evil-yank-advice)
+    #+end_src
+
+*** Dired
+    
+#+begin_src emacs-lisp
+(use-package dired
+  :ensure nil
+  :config
+  (progn
+    (setq insert-directory-program "/usr/bin/ls")
+    (setq dired-listing-switches "-lXGh --group-directories-first")
+    (add-hook 'dired-mode-mhook 'dired-omit-mode)
+    (add-hook 'dired-mode-hook 'dired-hide-details-mode)))
+#+end_src
+
+*** Dired-Subtree
+
+#+begin_src emacs-lisp
+(use-package dired-subtree
+  :demand
+  :bind
+  (:map dired-mode-map
+    ("<enter>" . stb/dwim-toggle-or-open)
+    ("<return>" . stb/dwim-toggle-or-open)
+    ("<tab>" . stb/dwim-toggle-or-open))
+  :config
+  (progn
+    ;; Function to customize the line prefixes
+    (setq dired-subtree-line-prefix (lambda (depth) (make-string (* 2 depth) ?\s)))
+    (setq dired-subtree-use-backgrounds nil)))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun stb/dwim-toggle-or-open ()
+  "Toggle subtree or open the file."
+  (interactive)
+  (if (file-directory-p (dired-get-file-for-visit))
+      (progn
+    (dired-subtree-toggle)
+    (revert-buffer))
+    (dired-find-file)))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun stb/toogle-project-explorer ()
+  "Toggle the project explorer window."
+  (interactive)
+  (let* ((buffer (dired-noselect (projectile-project-root)))
+    (window (get-buffer-window buffer)))
+    (if window
+      (stb/hide-project-explorer)
+      (stb/show-project-explorer))))
+      
+(defun stb/show-project-explorer ()
+  "Project dired buffer on the side of the frame.
+   Shows the projectile root folder using dired on the left side of the frame and makes it a dedicated window for that buffer."
+  (let ((buffer (dired-noselect (projectile-project-root))))
+    (progn
+      (display-buffer-in-side-window buffer '((side . right) (window-width . 0.2)))
+      (set-window-dedicated-p (get-buffer-window buffer) t))))
+
+(defun stb/hide-project-explorer ()
+  "Hide the project-explorer window."
+  (let ((buffer (dired-noselect (projectile-project-root))))
+    (progn
+      (delete-window (get-buffer-window buffer))
+      (kill-buffer buffer))))
+#+end_src
+
+** Usability
+*** Command Log Mode
+
+#+begin_src emacs-lisp
+(use-package command-log-mode)
+#+end_src
+*** Smex
+
+    #+begin_src emacs-lisp
+(use-package smex)
+    #+end_src
+
+*** Counsel
+
+#+begin_src emacs-lisp
+(use-package counsel
+  :bind (("M-x" . counsel-M-x)
+	 ("C-x b" . counsel-ibuffer)
+	 ("C-x C-f" . counsel-find-file)
+	 :map minibuffer-local-map
+	 ("C-r" . counsel-minibuffer-history))
+  :config (setq ivy-initial-inputs-alist nil)) ;; Don't start searches with ^
+#+end_src
+
+*** Ivy
+**** Ivy
+
+#+begin_src emacs-lisp
+(use-package ivy
+  :diminish
+  :bind (("C-s" . swiper)
+	 :map ivy-minibuffer-map
+	 ("TAB" . ivy-alt-done)
+	 ("C-l" . ivy-alt-done)
+	 ("C-j" . ivy-next-line)
+	 ("C-k" . ivy-previous-line)
+	 :map ivy-switch-buffer-map
+	 ("C-k" . ivy-previous-line)
+	 ("C-l" . ivy-done)
+	 ("C-d" . ivy-switch-buffer-kill)
+	 :map ivy-reverse-i-search-map
+	 ("C-k" . ivy-previous-line)
+	 ("C-d" . ivy-reverse-i-search-kill))
+  :config
+  (ivy-mode 1))
+#+end_src
+
+**** Ivy-Rich
+#+begin_src emacs-lisp
+(use-package ivy-rich
+  :init (ivy-rich-mode 1))
+#+end_src
+
+*** Keybindings
+**** Evil
+***** Evil
+****** TODO List thingy
+
+#+begin_src emacs-lisp
+(defun stb/evil-hook ()
+  (dolist (mode '(custom-mode))
+    (add-to-list 'evil-emacs-state-modes mode)))
+
+#+end_src
+
+****** Evil Package Configuration
+#+begin_src emacs-lisp
+(use-package evil
+  :ensure t
+  :init
+  (setq evil-want-integration t)
+  (setq evil-want-keybinding nil)
+  (setq evil-want-C-u-scroll t)
+  (setq evil-want-C-i-jump nil)
+  :hook (evil-mode . stb/evil-hook)
+  :config
+  (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
+
+  (evil-global-set-key 'motion "j" 'evil-next-visual-line)
+  (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
+
+  (evil-set-initial-state 'messages-buffer-mode 'normal)
+  (evil-set-initial-state 'dashboard-mode 'normal))
+(require 'evil)
+(evil-mode 1)
+#+end_src
+
+***** Evil-Collection
+
+#+begin_src emacs-lisp
+(use-package evil-collection
+  :after evil
+  :config
+  (evil-collection-init))
+#+end_src
+
+**** General
+
+#+begin_src emacs-lisp
+  (use-package general
+    :ensure t
+    :config
+    (general-create-definer stb/leader-keys
+      :keymaps '(normal insert visual emacs)
+      :prefix "SPC"
+      :global-prefix "C-SPC")
+
+    (stb/leader-keys
+      "w" '(:ignore t :which-key "write")
+      "wb" '(evil-write :which-key "save")
+      "wa" '(evil-write-all :which-key "save all")
+
+      "t" '(:ignore t :which-key "toggles")
+      "tn" '(global-display-line-numbers-mode :which-key "line numbers")
+      "tw" '(whitespace-mode :which-key "whitespaces")
+      "tt" '(:ignore t :which-key "themes")
+      "ttt" '(stb/theme-default :which-key "default")
+      "ttd" '(stb/theme-dark :which-key "dark")
+      "ttl" '(stb/theme-light :which-key "light")
+      "tp" '(stb/toogle-project-explorer :which-key "project explorer")
+
+      "b" '(:ignore t :which-key "buffers")
+      "bs" '(counsel-switch-buffer :which-key "buffers")
+      "bk" '(image-kill-buffer :which-key "kill current")
+      "bd" '(kill-buffer :which-key "kill")
+      "bn" '(evil-buffer-new :which-key "new")
+
+      "o" '(:ignore t :which-key "org")
+      "oo" '(org-mode :which-key "org")
+      "oa" '(org-agenda :which-key "agenda")
+      "ot" '(counsel-org-tag :which-key "tags")
+
+      "g" '(magit-status :which-key "git")))
+#+end_src
+
+**** Hydra
+
+#+begin_src emacs-lisp
+(use-package hydra)
+(defhydra hydra-text-scale (:timeout 4)
+  "scale text"
+  ("j" text-scale-increase "in")
+  ("k" text-scale-decrease "out")
+  ("f" nil "finished" :exit t))
+
+(stb/leader-keys
+  "ts" '(hydra-text-scale/body :which-key "scale text"))
+#+end_src
+
+*** Project Management
+**** Projectile
+***** Projectile
+
+#+begin_src emacs-lisp
+(use-package projectile
+  :diminish projectile-mode
+  :config (projectile-mode)
+  :custom ((projectile-completion-system 'ivy))
+  :bind-keymap
+  ("C-c p" . projectile-command-map)
+  :init
+  (when (file-directory-p "~/Developement/playground")
+    (setq projectile-project-search-path '("~/Developement/playground")))
+  (setq projectile-switch-projectile-action #'projectile-dired))
+#+end_src
+
+#+begin_src emacs-lisp
+(stb/leader-keys
+  "p" '(projectile-command-map :which-key "project"))
+#+end_src
+
+***** Counsel-Projectile
+
+#+begin_src emacs-lisp
+(use-package counsel-projectile
+  :config (counsel-projectile-mode))
+#+end_src
+**** Git
+***** Magit
+
+#+begin_src emacs-lisp
+(use-package magit
+  :commands (magit-status magit-get-current-branch)
+  :custom
+  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+#+end_src
+
+***** Evil-Magit
+
+#+begin_src emacs-lisp
+(use-package evil-magit
+  :after magit)
+#+end_src
+
+*** Flycheck
+
+#+begin_src emacs-lisp
+(use-package flycheck
+  :ensure t
+  :init (global-flycheck-mode))
+#+end_src
+
+*** Company
+
+#+begin_src emacs-lisp
+(use-package company)
+(add-hook 'after-init-hook 'global-company-mode)
+#+end_src
+
+*** Language Server Protocol
+
+#+begin_src emacs-lisp
+(use-package lsp-mode
+  :commands (lsp lsp-deferred)
+  :init
+    (setq lsp-keymap-prefix "C-c l")
+  :config
+    (lsp-enable-which-key-integration t))
+#+end_src
+
+** Major Modes
+*** TODO Mu4e
+
+    #+begin_src emacs-lisp
+      (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
+      (require 'smtpmail)
+
+      (setq message-send-mail-function 'smtpmail-send-it
+            smtpmail-starttls-credentials
+            '(("mail.mailo.com" 587 nil nil))
+            smtpmail-default-smtp-server "mail.mailo.com"
+            smtpmail-smtp-server "mail.mailo.com"
+            smtpmail-smtp-service 587
+            smtpmail-debug-info t)
+
+
+      (require 'mu4e)
+      (setq mu4e-maildir (expand-file-name "~/email/stephan.bischoff@mailo.eu"))
+      (setq mu4e-drafts-folder "/draftbox")
+      (setq mu4e-sent-folder "/sent")
+      (setq mu4e-trash-folder "/trash")
+
+      (setq mu4e-get-mail-command "mbsync -c ~/.mbsyncrc -a"
+            mu4e-html2text-command "w3m -T text/html"
+            mu4e-update-interval 120
+            mu4e-headers-auto-update t
+            mu4e-change-filenames-when-moving t)
+
+      (setq mu4e-maildir-shortcuts
+            '(("/INBOX" . ?i)
+              ("/sent" . ?s)
+              ("/trash" . ?t)
+              ("/draftbox" . ?d)))
+
+      (setq mu4e-reply-to-address "stephan.bischoff@mailo.eu"
+            user-mail-address "stephan.bischoff@mailo.eu"
+            user-full-name "Stephan Bischoff")
+    #+end_src
+   
+*** Org
+**** Font Setup Function
+     
+#+begin_src emacs-lisp
+(defun stb/org-font-setup ()
+  ;; Replace list hyphen with dot
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                          (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "➤"))))))
+  (dolist (face '((org-level-1 . 1.3)
+                  (org-level-2 . 1.2)
+                  (org-level-3 . 1.1)
+                  (org-level-4 . 1.0)
+                  (org-level-5 . 1.0)
+                  (org-level-6 . 1.0)
+                  (org-level-7 . 1.0)
+                  (org-level-8 . 1.0)))
+    (set-face-attribute (car face) nil :font "JetBrains Mono" :weight 'bold :height (cdr face)))
+
+  (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+  (set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
+  (set-face-attribute 'org-table nil   :inherit '(shadow fixed-pitch))
+  (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+  (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+  (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+  (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch))
+#+end_src
+
+**** Org Setup Function
+
+#+begin_src emacs-lisp
+(defun stb/org-mode-setup ()
+  ;(org-indent-mode)
+  (visual-line-mode 1)
+  (variable-pitch-mode 1)
+  (auto-fill-mode 0)
+  (setq org-hide-emphasis-markers t)
+  ;(setq evil-auto-indet nil)
+)
+#+end_src
+
+**** Org
+
+#+begin_src emacs-lisp
+  (use-package org
+    :ensure t
+    :hook (org-mode . stb/org-mode-setup)
+    :config
+    (setq org-ellipsis " ↓")
+
+    (setq org-agenda-start-with-log-mode t)
+    (setq org-log-done 'time)
+    (setq org-log-into-drawer t)
+    (setq org-agenda-files (list "~/orgfiles"))
+    (stb/org-font-setup))
+#+end_src
+
+**** Org Bullets
+#+begin_src emacs-lisp
+(use-package org-bullets
+  :after org
+  :hook (org-mode . org-bullets-mode)
+  :custom
+  (org-bullets-bullet-list '("◉" "*" "●" "*" "●" "*" "●")))
+#+end_src
+
+**** Babel
+
+#+begin_src emacs-lisp
+(org-babel-do-load-languages
+  'org-babel-load-languages
+  '((python . t)))
+(setq org-babel-python-command "python3")
+
+(add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
+#+end_src
+
+*** Ledger
+
+#+begin_src emacs-lisp
+(use-package ledger-mode
+  :defer t)
+#+end_src
+
+*** Python
+**** Elpy
+
+#+begin_src emacs-lisp
+(use-package elpy
+  :ensure t
+  :defer t
+  :init (advice-add 'python-mode :before 'elpy-enable))
+#+end_src
+
+**** PyEnv-Mode
+
+#+begin_src emacs-lisp
+(use-package pyenv-mode)
+#+end_src
+
+**** Setup
+
+#+begin_src emacs-lisp
+(setq elpy-rpc-python-command "python3")
+(setq python-shell-interpreter "python3")
+#+end_src
+
+*** Rust
+**** Rust-Mode
+
+#+begin_src emacs-lisp
+(use-package rust-mode
+  :defer t
+  :config
+  (setq rust-format-on-save t))
+#+end_src
+
+**** Racer
+
+#+begin_src emacs-lisp
+  (use-package racer
+    :defer t)
+
+  (add-hook 'rust-mode-hook #'racer-mode)
+  (add-hook 'racer-mode-hook #'eldoc-mode)
+  (add-hook 'racer-mode-hook #'company-mode)
+#+end_src
+
+Set /RUST_SRC_PATH/ for the nightly stuff that changed for some reason ~
+
+#+begin_src emacs-lisp
+  (setq racer-rust-src-path
+	(let* ((sysroot (string-trim
+			 (shell-command-to-string "rustc --print sysroot")))
+	       (lib-path (concat sysroot "/lib/rustlib/src/rust/library"))
+	       (src-path (concat sysroot "/lib/rustlib/src/rust/src")))
+	  (or (when (file-exists-p lib-path) lib-path)
+	      (when (file-exists-p src-path) src-path))))
+#+end_src
+
+**** Cargo
+
+#+begin_src emacs-lisp
+(use-package cargo
+  :defer t)
+#+end_src
+*** Haskell
+**** Haskell-Mode
+
+#+begin_src emacs-lisp
+(use-package haskell-mode)
+#+end_src
+
+**** Haskell-Interactive-Mode
+
+#+begin_src emacs-lisp
+(require 'haskell-interactive-mode)
+(require 'haskell-process)
+(add-hook 'haskell-mode-hook 'interactive-haskell-mode)
+#+end_src
+
+**** Company-GHCI
+
+#+begin_src emacs-lisp
+(use-package company-ghci)
+
+(require 'company-ghci)
+(push 'company-ghci company-backends)
+(add-hook 'haskell-mode-hook 'company-mode)
+(add-hook 'haskell-interactive-mode-hook 'company-mode)
+#+end_src
+
+*** Emacs Speaks Statistics
+
+#+begin_src emacs-lisp
+(use-package ess)
+#+end_src
+
+*** Prolog
+
+    #+begin_src emacs-lisp
+      (autoload 'prolog-mode "prolog" "Major mode for editing Prolog programs." t)
+      (add-to-list 'auto-mode-alist '("\\.pl\\'" . prolog-mode))
+    #+end_src
+
+    
+    
+*** YAML
+
+    #+begin_src emacs-lisp
+(use-package yaml-mode)
+    #+end_src
