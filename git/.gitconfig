@@ -1,0 +1,10 @@
+[user]
+	name = Stephan Bischoff
+	email = stephan.bischoff@digle.net
+[alias]
+    a = add
+    p = push
+    b = branch
+    s = status
+[format]
+    pretty = format:%C(yellow)%h %Cblue%>(12)%ad %Cgreen%<(7)%aN%Cred%d %Creset%s
