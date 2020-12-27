@@ -3,6 +3,6 @@
 Using `stow`.
 
 
-## Resoring The Configurations
+## Restoring The Configurations
 
-`stow -vSt ~ *` or `stow -vSt ~ <package>`
+`stow -Rt ~ *\` or `stow -Rt ~ <package>`
